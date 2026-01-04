@@ -5,4 +5,8 @@ dist/
 build/
 .mypy_cache/
 /.venv
+.env
+.env.*
+!.env.example
+gmac-kalshi.txt
 

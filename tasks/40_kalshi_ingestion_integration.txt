@@ -1,0 +1,31 @@
+Task 40 — Kalshi ingestion + storage integration [PARALLEL AFTER 10, 20]
+
+Goal
+- Wire `KalshiClient` + `Store` together so mocked HTTP responses can be consumed and persisted predictably.
+
+Scope (MVP)
+- Build a lightweight ingestion helper (function/class) that:
+  - pulls paginated market/trade payloads via `KalshiClient`.
+  - records each raw payload with `Store.write_raw_payload`.
+  - normalizes payloads into `Market`/`Trade` objects and writes them via the store.
+- Keep integration logic isolated so higher-level features can consume persisted data without touching the API.
+
+Test-first requirements (tests must FAIL until implemented)
+- Add tests that mock `KalshiClient` responses and assert:
+  - raw payloads are deduped when the mock yields the same page twice.
+  - normalized trades appear via `Store.iter_trades` after ingestion.
+  - pagination helper is used so all mock pages are recorded.
+
+Implementation notes
+- Reuse existing fixtures/abstractions for mocking HTTP (`httpx` or injected client).
+- Keep ingestion logic outside of the core client/storage modules to minimize coupling.
+- Consider giving the helper configurable targets (market IDs, time ranges) for future rules/features integration.
+
+Acceptance criteria
+- Integration helper exists and passes the new tests.
+- Tests fail before helper implementation (mock objects should be wired but not yet consumed).
+- Persistence layer still dedupes and orders trades correctly when driven by the helper.
+
+Parallelization note
+- Can run alongside Task 30 after Task 10 & Task 20 land; avoids touching raw API/storage implementations directly.
+
