@@ -1,0 +1,34 @@
+Task 10 — Kalshi API client interface + contract tests [PARALLEL AFTER 00]
+
+Goal
+- Define a clean `KalshiClient` interface and write tests that specify its behavior (no real network).
+
+Scope (MVP)
+- A tiny HTTP client wrapper with:
+  - base URL selection (demo vs prod)
+  - auth header/signature wiring (exact mechanism per docs; keep behind interface)
+  - retry/backoff on transient failures (very minimal)
+  - cursor pagination helper
+
+Test-first requirements (tests must FAIL until implemented)
+- Add tests that validate:
+  - `KalshiClient` builds correct request URL + query params for a representative endpoint (use stubs).
+  - pagination helper yields all pages given mocked responses with `cursor`/`next_cursor`.
+  - rate-limit / transient error handling retries (mock 429/5xx then success).
+
+Implementation notes
+- Tests should mock HTTP at the boundary (e.g., `httpx`/`requests` mock).
+- Do NOT couple detection logic to the raw API payload; keep normalization separate.
+
+Acceptance criteria
+- `KalshiClient` exists with a small method surface:
+  - `list_markets(...)`
+  - `list_trades(market_id, ...)` (or equivalent)
+  - `paginate(...)` helper or iterator
+- All tests pass once implemented; initially they should fail with missing modules/methods.
+
+Parallelization note
+- Can be implemented in parallel with Task 20 and Task 30 once Task 00 is merged.
+- No dependency on storage or features, beyond shared style choices.
+
+

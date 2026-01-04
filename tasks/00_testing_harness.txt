@@ -1,0 +1,29 @@
+Task 00 — Testing harness (pytest) [BLOCKING]
+
+Goal
+- Establish a minimal Python test environment using pytest so future tasks can add failing tests first.
+
+Why this is first
+- All other tasks assume `pytest` exists and can run in CI/local dev.
+
+Deliverables
+- Add a Python project skeleton:
+  - `src/` package root (e.g., `src/kalsh/__init__.py`)
+  - `tests/` folder
+- Add dependency + tooling config (choose ONE):
+  - Option A: `pyproject.toml` (preferred)
+  - Option B: `requirements.txt` + minimal config
+- Add a single “smoke” test that passes to confirm harness works.
+
+TDD requirement
+- This task is allowed to have a passing test (the harness smoke test).
+- It must NOT implement any product logic yet.
+
+Acceptance criteria
+- Running `pytest` discovers tests and exits successfully.
+- `src/` imports work in tests without fiddly PYTHONPATH hacks.
+
+Parallelization note
+- This task is BLOCKING for all other tasks because they require `pytest` to run.
+
+

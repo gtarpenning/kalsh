@@ -1,0 +1,32 @@
+Task 30 — Feature builder + rule-based “obvious” detector (tests first) [PARALLEL AFTER 00]
+
+Goal
+- Implement the MVP “obvious insider” filter using a small feature builder and rule set.
+
+Scope (MVP)
+- Input: a list of normalized `Trade` records for a market.
+- Output: a list of “cases” with reasons:
+  - single-user dominance in short window
+  - sudden position growth threshold
+
+Test-first requirements (tests must FAIL until implemented)
+- Add tests that build a synthetic trade tape and assert:
+  - dominance rule fires when one user accounts for >X% of volume in window.
+  - dominance rule does NOT fire on evenly distributed users.
+  - sudden-growth rule fires for a burst of buys within window.
+  - cases include stable, deterministic `reasons` strings/structures (for UI/reporting).
+
+Implementation notes
+- Keep features minimal:
+  - per-(market_id,user_id,window): user_volume, total_volume, user_trade_count, total_trade_count, net_shares
+- Use pure functions where possible; no DB, no API.
+
+Acceptance criteria
+- `FeatureBuilder` and `RuleFilter` (or equivalent functions) exist and pass tests.
+- Tests fail before implementation exists.
+
+Parallelization note
+- Can run in parallel with Task 10 and Task 20 after Task 00.
+- Avoid touching API/storage modules to reduce merge conflicts.
+
+

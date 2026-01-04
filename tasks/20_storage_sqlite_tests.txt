@@ -1,0 +1,32 @@
+Task 20 — Storage layer (SQLite) interface + tests [PARALLEL AFTER 00]
+
+Goal
+- Define a simple `Store` interface and a SQLite implementation, starting from failing tests.
+
+Scope (MVP)
+- Persist:
+  - raw payloads (JSON blobs)
+  - normalized records (markets, trades)
+- Idempotent writes via primary keys / unique constraints.
+
+Test-first requirements (tests must FAIL until implemented)
+- Add tests that validate:
+  - writing the same raw payload twice does not duplicate rows (dedupe).
+  - `write_trades` upserts/dedupes by `trade_id`.
+  - `iter_trades(market_id, start_ts, end_ts)` returns correct subset + ordering.
+
+Implementation notes
+- Prefer `sqlite3` standard library (keep deps minimal).
+- Keep schema tiny and explicit.
+- Do NOT implement feature building here.
+
+Acceptance criteria
+- `Store` interface exists (protocol/ABC is fine).
+- `SQLiteStore` implementation passes tests.
+- All tests initially fail before implementation exists.
+
+Parallelization note
+- Can be done in parallel with Task 10 and Task 30 after Task 00.
+- Avoid touching `KalshiClient` to reduce merge conflicts.
+
+

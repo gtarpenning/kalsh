@@ -1,0 +1,21 @@
+[project]
+name = "kalsh"
+version = "0.1.0"
+description = "Minimal harness for future kalsh work."
+requires-python = ">=3.11"
+dependencies = [
+    "pytest>=7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["kalsh*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
