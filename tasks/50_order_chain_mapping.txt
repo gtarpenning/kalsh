@@ -1,0 +1,18 @@
+Task 50 — Order chain mapping & data readiness [BLOCKING]
+
+Goal
+- Map the actual API order/trade flow we need to replay before running the detector so we know which payloads carry useful identifiers (user/account, order, side, timestamps, etc.).
+
+Why this matters
+- The UI already surfaces the “conviction” cases we care about; we need to know which sequence of endpoints (markets → trades → maybe fills/orders) yields the same data so the rules can recreate it.
+- Without knowing which fields identify an outsized trader we cannot wire the ingestion → feature → detection pipeline to the right keys.
+
+Deliverables
+- Capture the chain of API calls we must replay: `list_markets` (status/per-page), followed by the paginated `list_trades` requests for each market (filters, cursor handling, timestamps, order info). Record the request params we need to reproduce the UI’s “order chain.”
+- Enumerate the response fields required for the “strong conviction” signals (user/account identifier, net position impact, derived fields like side or liquidity). Confirm whether these fields are present in the `list_trades` payload or require hitting another endpoint.
+- Decide how to persist request metadata (cursor, market_id) so the pipeline can rerun the same chain deterministically and log it alongside detection results for auditability.
+- Add automated tests or fixtures that capture representative API payloads so downstream normalization/feature code can be verified without live credentials.
+
+Testing
+- Manual verification: run the exploratory script (or recorded fixture) to ensure we have all necessary fields.
+- Add contract tests for any new payload fixtures used by the normalizer so metadata fields are covered before wiring detection.

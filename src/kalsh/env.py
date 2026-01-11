@@ -65,3 +65,17 @@ class KalshiCredentials:
 
         return cls(api_key=api_key, api_secret=api_secret)
 
+
+def get_kalshi_environment(
+    *,
+    dotenv: Path | str = ".env",
+    env: Mapping[str, str] | None = None,
+) -> str:
+    """Get Kalshi environment from env vars (DEMO or PROD)."""
+    load_dotenv(dotenv)
+    mapping = env if env is not None else os.environ
+    env_value = mapping.get("KALSHI_ENVIRONMENT", "DEMO").upper()
+    if env_value not in ("DEMO", "PROD"):
+        raise EnvironmentError(f"KALSHI_ENVIRONMENT must be DEMO or PROD, got: {env_value}")
+    return env_value
+

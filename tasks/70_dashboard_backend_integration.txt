@@ -1,0 +1,37 @@
+Task 70 — Dashboard backend integration [IMPLEMENTATION]
+
+Goal
+- Replace the stubbed Next.js API routes with a real Python backend that serves dashboard data from the SQLite store, executes pipeline runs, and proxies live Kalshi market/order data.
+
+Why this comes after Task 60
+- The dashboard frontend is built with mock data. Once Task 60 delivers the full pipeline (ingestion → storage → detection → reporting), we can wire the dashboard to query real results and trigger actual runs.
+
+Deliverables
+- Build a Python API server (FastAPI or similar) that exposes REST endpoints matching the dashboard's expectations:
+  - `GET /api/kalshi/dashboard-data` → aggregated stats (market count, anomaly count, pipeline runs)
+  - `GET /api/pipelines` → list of pipeline runs with status/timestamps
+  - `POST /api/pipelines` → kick off a new pipeline run (async/background task)
+  - `GET /api/database/:table` → query arbitrary tables (markets, trades, anomalies, raw_payload, request_metadata) with pagination/filtering
+  - `GET /api/markets` → search markets (query Kalshi API or local cache)
+  - `GET /api/markets/:id/orders` → fetch large trader orders for a specific market
+- Implement CORS configuration so the Next.js dev server (localhost:3000) can call the Python API (localhost:8000 or similar)
+- Update `dashboard/src/app/api/**/route.ts` files to proxy requests to the Python backend instead of returning mock data, or remove the Next.js API routes entirely and call Python directly from the frontend
+- Add environment configuration (`.env` variables) for the dashboard to point at the Python API base URL
+- Wire up the pipeline runner from Task 60 to be invokable via API (background job/queue) with status tracking stored in SQLite
+- Implement basic error handling and validation (400/404/500 responses) so the dashboard can display meaningful error states
+- Document the API contract (endpoints, request/response shapes) for future maintenance
+
+Testing
+- Manual verification: start the Python API server, run `make dashboard-dev`, and confirm all dashboard features work with real data
+- Add integration tests that exercise the full stack: trigger a pipeline run via API, wait for completion, then fetch and verify detection results appear in the database viewer
+- Test error paths: invalid requests, missing data, pipeline failures
+
+Architecture notes
+- The Python API should read from the same SQLite database that the pipeline writes to (single source of truth)
+- Consider using FastAPI's BackgroundTasks or a simple queue (Redis/SQLite-based) for async pipeline execution
+- Keep the dashboard stateless: all state lives in SQLite or the Python backend
+- For large trader order tracking, decide whether to store this in a new table during ingestion or compute it on-demand from trades
+
+Dependencies
+- Python packages: fastapi, uvicorn (for API server), pydantic (for validation)
+- Optional: httpx-sse or similar if implementing real-time pipeline status updates

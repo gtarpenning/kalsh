@@ -1,0 +1,24 @@
+Task 60 — Top-market anomaly pipeline [BLOCKING]
+
+Goal
+- Build the orchestration that can take the top ~100 visible markets, pull their trade tapes, feed them through the feature/rule layers, and report any “strong conviction” cases so we can run the whole detector end-to-end.
+
+Why this comes after Task 50
+- Without the precise order chain and payload contract we can’t implement reliable ingestion/feature code. Task 50 makes the inputs deterministic; Task 60 wires the rest of the stack to consume them.
+
+Deliverables
+- Extend the ingestion/store layer to capture and persist every field that feeds the rules (market_id, user/account id, trade_id, quantity, side, timestamp, order_id if it exists). Include a helper that emits the same normalized `rules.Trade` objects used by the unit tests.
+- Implement a “runner” (CLI/script in `pipeline/` or `scripts/`) that:
+  - Fetches the top ~100 markets via `KalshiClient.list_markets` (configurable per_page/filters).
+  - For each market, walks the paginated `list_trades` chain (respecting cursor/rate limits) while logging the order chain metadata for auditability.
+  - Writes raw payloads + normalized rows to `SQLiteStore` and then streams the trades back into `rules.FeatureBuilder` → `RuleFilter`.
+  - Collects all cases, sorts them by conviction metrics (dominance share or growth), and prints a `rich` table showing market, user_id, quantity share, reason, and request path/cursor details.
+- Provide a lightweight reporter that can be pointed at the SQLite DB to re-run detection on previously captured data (for debugging/ backfill).
+- Wire up automated tests that cover:
+  - Converting stored trades into `rules.Trade`.
+  - Running the pipeline running over mock markets/trades and exercising the `rich` reporter so the “whole run” path stays exercised.
+- Document the remaining config/flags (thresholds, window size, per-page limits) near the runner so future work can tweak them.
+
+Testing
+- `python -m pytest` covering the new runner conversion helpers + mocked pipeline execution.
+- Optional: use existing script (`scripts/kalshi_pipeline_demo.py`) as the basis for manual verification after wiring the detection loop.

@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from .env import KalshiCredentials
+from . import schemas
 
 
 def _load_private_key(pem_or_content: str) -> rsa.RSAPrivateKey:
@@ -108,6 +109,13 @@ class KalshiClient:
             description="Retrieve portfolio balance.",
             params=(),
         ),
+        KalshiEndpointSpec(
+            name="get_market_candlesticks",
+            method="GET",
+            path="/trade-api/v2/series/{series_ticker}/markets/{ticker}/candlesticks",
+            description="Get candlestick data for a market.",
+            params=("series_ticker", "ticker", "start_ts", "end_ts", "period_interval"),
+        ),
     )
 
     def __init__(
@@ -143,23 +151,26 @@ class KalshiClient:
         status: str | None = None,
         per_page: int | None = None,
         cursor: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> schemas.MarketsResponse:
         params = self._build_params(status=status, per_page=per_page, cursor=cursor)
-        return self._get(self.MARKETS_PATH, params=params)
+        raw = self._get(self.MARKETS_PATH, params=params)
+        return schemas.MarketsResponse(**raw)
 
     def list_trades(
         self,
         *,
         market_id: str | None = None,
+        ticker: str | None = None,
         status: str | None = None,
         per_page: int | None = None,
         cursor: str | None = None,
         limit: int | None = None,
         min_ts: int | None = None,
         max_ts: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> schemas.TradesResponse:
         params = self._build_params(
             market_id=market_id,
+            ticker=ticker,
             status=status,
             per_page=per_page,
             cursor=cursor,
@@ -167,25 +178,49 @@ class KalshiClient:
             min_ts=min_ts,
             max_ts=max_ts,
         )
-        return self._get(self.TRADES_PATH, params=params)
+        raw = self._get(self.TRADES_PATH, params=params)
+        return schemas.TradesResponse(**raw)
 
-    def get_exchange_status(self) -> dict[str, Any]:
-        return self._get(self.EXCHANGE_STATUS_PATH)
+    def get_exchange_status(self) -> schemas.ExchangeStatus:
+        raw = self._get(self.EXCHANGE_STATUS_PATH)
+        return schemas.ExchangeStatus(**raw)
 
-    def get_balance(self) -> dict[str, Any]:
-        return self._get(self.BALANCE_PATH)
+    def get_balance(self) -> schemas.Balance:
+        raw = self._get(self.BALANCE_PATH)
+        return schemas.Balance(**raw)
+
+    def get_market_candlesticks(
+        self,
+        series_ticker: str,
+        ticker: str,
+        *,
+        start_ts: int,
+        end_ts: int,
+        period_interval: int,
+    ) -> schemas.CandlesticksResponse:
+        path = f"/trade-api/v2/series/{series_ticker}/markets/{ticker}/candlesticks"
+        params = self._build_params(
+            start_ts=start_ts,
+            end_ts=end_ts,
+            period_interval=period_interval,
+        )
+        raw = self._get(path, params=params)
+        return schemas.CandlesticksResponse(**raw)
 
     def paginate(
         self,
         path: str,
         *,
         params: Mapping[str, Any] | None = None,
+        request_logger: Callable[[str, str, Mapping[str, Any]], None] | None = None,
     ) -> Iterator[dict[str, Any]]:
         next_cursor: str | None = None
         while True:
             request_params = dict(params or {})
             if next_cursor:
                 request_params["cursor"] = next_cursor
+            if request_logger:
+                request_logger("GET", path, request_params)
             response_json = self._request("GET", path, params=request_params).json()
             yield response_json
             next_cursor = response_json.get("next_cursor")

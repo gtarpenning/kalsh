@@ -7,6 +7,8 @@ dependencies = [
     "cryptography>=41.0",
     "httpx>=0.28.0",
     "rich>=14.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -24,8 +26,6 @@ include = ["kalsh*"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 
-[tool.ty]
-include = ["src/**/*.py", "tests/**/*.py"]
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

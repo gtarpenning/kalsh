@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
 
 @dataclass(frozen=True)

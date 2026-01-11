@@ -7,3 +7,8 @@ __pycache__/
 .env
 .api.pid
 .dashboard.pid
+
+# API Keys and Secrets
+gmac-kalshi.txt
+*.pem
+*.key

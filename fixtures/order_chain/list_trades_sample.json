@@ -1,0 +1,29 @@
+{
+  "trades": [
+    {
+      "trade_id": "3d564518-dfe2-7847-7e92-f51c3356c361",
+      "ticker": "KXMARKET-26JAN10-YES",
+      "count": 50,
+      "created_time": "2026-01-10T02:06:47.991525Z",
+      "price": 0.57,
+      "yes_price": 57,
+      "no_price": 43,
+      "yes_price_dollars": "0.5700",
+      "no_price_dollars": "0.4300",
+      "taker_side": "yes"
+    },
+    {
+      "trade_id": "4e675629-efe3-8958-8fa3-g62d4467d472",
+      "ticker": "KXMARKET-26JAN10-YES",
+      "count": 5,
+      "created_time": "2026-01-10T02:07:48.123456Z",
+      "price": 0.43,
+      "yes_price": 43,
+      "no_price": 57,
+      "yes_price_dollars": "0.4300",
+      "no_price_dollars": "0.5700",
+      "taker_side": "no"
+    }
+  ],
+  "next_cursor": "cursor-001"
+}

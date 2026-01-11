@@ -1,0 +1,241 @@
+TASK: Full Market Database with Sorting, Filtering & Refresh
+================================================================
+
+GOAL: Populate local DB with ALL Kalshi markets and enable efficient sorting/filtering/refresh
+
+DIFFICULTY ASSESSMENT: Medium
+- Estimated time: 3-4 hours
+- Complexity: The pagination infrastructure exists, just need to wire it up properly
+- Main work: DB schema update, new endpoints, frontend integration
+
+PREREQUISITES:
+- Existing pagination support in KalshiClient.paginate()
+- Existing ingestion.KalshiIngestor handles pagination
+- SQLite storage with markets table
+- Frontend already has search functionality
+
+ARCHITECTURE OVERVIEW:
+┌─────────────────┐
+│  Kalshi API     │ ──fetch all markets──> │ Local SQLite DB  │
+│  (paginated)    │                         │ + last_fetched   │
+└─────────────────┘                         └──────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌──────────────────┐
+                                            │  FastAPI Backend │
+                                            │  - /markets (paginated, sorted, filtered)
+                                            │  - /markets/refresh (batch update)
+                                            └──────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌──────────────────┐
+                                            │ Next.js Frontend │
+                                            │ - Sort controls  │
+                                            │ - Search filter  │
+                                            │ - Refresh button │
+                                            └──────────────────┘
+
+TASK BREAKDOWN:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: Database Schema Updates (30 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ 1.1 Add last_fetched timestamp to markets table
+   - Update storage.py SQLiteStore._ensure_schema()
+   - Add migration in _migrate_schema() for existing databases
+   - Update storage.Market dataclass with last_fetched field
+   - Set last_fetched on market writes
+
+□ 1.2 Add index for common queries
+   - CREATE INDEX idx_markets_volume ON markets(volume DESC)
+   - CREATE INDEX idx_markets_liquidity ON markets(liquidity DESC)
+   - CREATE INDEX idx_markets_status ON markets(status)
+   - CREATE INDEX idx_markets_last_fetched ON markets(last_fetched)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: Full Market Sync Script (45 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ 2.1 Create scripts/sync_all_markets.py
+   - Fetch ALL markets using ingestor.ingest_markets() without limit
+   - Use KalshiIngestor which already handles pagination
+   - Show progress with rich progress bar
+   - Report stats: total markets, time taken, markets/sec
+   - Support --status filter (open, closed, all)
+   - Support --force flag to refresh all even if recent
+
+□ 2.2 Add sync_all_markets() method to PipelineRunner
+   - Reusable method for programmatic market syncing
+   - Returns sync statistics
+
+□ 2.3 Create scheduled sync capability
+   - Optional: Add to pipeline or separate cron-like script
+   - Sync all open markets every N hours
+   - Sync closed/settled markets daily
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3: Enhanced API Endpoints (60 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ 3.1 Replace get_recent_markets() with get_markets()
+   - Add query parameters:
+     * limit (default 50)
+     * offset (for pagination)
+     * sort_by (volume, liquidity, probability, last_fetched)
+     * sort_order (asc, desc)
+     * status (open, closed, settled, all)
+     * search (text search on name/ticker)
+     * min_volume, max_volume
+     * min_liquidity, max_liquidity
+   - Return total count for pagination
+   - Include last_fetched in response
+
+□ 3.2 Update GET /api/kalshi/dashboard-data
+   - Use new get_markets() with default sorting
+   - Include sync metadata (last_sync_time, total_markets)
+
+□ 3.3 Create GET /api/kalshi/markets
+   - Full market query endpoint with all filters
+   - Paginated response with total count
+   - Example: /api/kalshi/markets?sort_by=volume&limit=100&status=open
+
+□ 3.4 Create POST /api/kalshi/markets/refresh
+   - Accept list of market tickers to refresh
+   - Batch fetch from Kalshi API (respect rate limits)
+   - Update database with fresh data
+   - Return updated market data
+
+□ 3.5 Create POST /api/kalshi/markets/sync-all
+   - Trigger full market sync in background
+   - Return job ID and status endpoint
+   - Use BackgroundTasks for async execution
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4: Frontend Updates (60 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ 4.1 Update dashboard types (dashboard.ts)
+   - Add sortBy, sortOrder, filters to Market interface
+   - Add sync metadata types
+   - Add pagination metadata
+
+□ 4.2 Update MarketExplorer component
+   - Add sort dropdown (Volume, Liquidity, Probability, Recent)
+   - Add status filter tabs (All, Open, Closed, Settled)
+   - Show "Last synced: X mins ago" timestamp
+   - Add "Sync All Markets" button (triggers full sync)
+   - Add "Refresh Visible" button (refreshes current page only)
+   - Add pagination controls (if > 50 markets)
+
+□ 4.3 Update useDashboardData hook
+   - Support query parameters for sorting/filtering
+   - Fetch from /api/kalshi/markets instead of dashboard-data
+   - Handle pagination state
+
+□ 4.4 Add refresh functionality
+   - Implement selective refresh of visible markets
+   - Show loading state during refresh
+   - Toast notification on successful refresh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5: Polish & Documentation (30 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ 5.1 Add tests
+   - Test market sync script
+   - Test API endpoints with filters
+   - Test pagination
+
+□ 5.2 Update documentation
+   - Add sync_all_markets.py to README
+   - Document API endpoints
+   - Add usage examples
+
+□ 5.3 Performance optimization
+   - Test with 1000+ markets
+   - Ensure queries are fast with indexes
+   - Consider caching strategies
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BATCH REFRESH STRATEGY:
+- Kalshi API has /markets endpoint that accepts multiple tickers
+- Use cursor pagination to fetch all markets efficiently
+- Rate limit: ~100ms between requests (already implemented)
+- Estimate: ~1000 markets = ~10 pages = ~10 seconds
+
+DATA FRESHNESS:
+- Full sync: Run every 6-12 hours for all markets
+- Quick refresh: User-triggered for visible markets only
+- Candlesticks: Always fetch at runtime (not stored)
+- Trades: Only fetch when needed for detection
+
+SORTING & FILTERING:
+- All done in SQL for performance
+- Use prepared statements to prevent SQL injection
+- Consider adding full-text search if needed
+
+MIGRATION PATH:
+1. Add last_fetched column (defaults to NULL for existing)
+2. Run initial full sync to populate all markets
+3. Update dashboard to use new endpoint
+4. Keep old endpoint for backward compat (temporary)
+5. Remove old endpoint after frontend migration
+
+EXAMPLE API RESPONSES:
+
+GET /api/kalshi/markets?sort_by=volume&limit=10&status=open
+{
+  "markets": [...],
+  "total": 523,
+  "limit": 10,
+  "offset": 0,
+  "sort_by": "volume",
+  "sort_order": "desc",
+  "last_sync": "2026-01-09T18:30:00Z"
+}
+
+POST /api/kalshi/markets/refresh
+Request: {"tickers": ["KXMV...", "KXQT..."]}
+Response: {
+  "refreshed": 2,
+  "failed": 0,
+  "markets": [...]
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY ORDER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HIGH PRIORITY (Core functionality):
+- 1.1: Database schema with last_fetched
+- 2.1: Full market sync script
+- 3.1: Enhanced get_markets() with sorting
+- 4.2: Frontend sort controls
+
+MEDIUM PRIORITY (Nice to have):
+- 1.2: Database indexes
+- 3.3: Dedicated /markets endpoint
+- 3.4: Batch refresh endpoint
+- 4.4: Refresh button functionality
+
+LOW PRIORITY (Polish):
+- 2.3: Scheduled syncing
+- 3.5: Background sync job
+- 5.1-5.3: Tests and docs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ESTIMATED TIMELINE:
+- Minimal viable (sort by volume): 1-2 hours
+- Full implementation: 3-4 hours
+- With tests & polish: 5-6 hours
+
+RISK ASSESSMENT: LOW
+- Leverages existing pagination infrastructure
+- SQLite handles filtering/sorting well
+- No breaking changes to existing code
+- Can roll out incrementally

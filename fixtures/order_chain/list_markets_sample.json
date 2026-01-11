@@ -1,0 +1,22 @@
+{
+  "markets": [
+    {
+      "ticker": "KXMARKET-26JAN10-YES",
+      "event_ticker": "KXMARKET-26JAN10",
+      "title": "Will Bitcoin close above $100k on Jan 10?",
+      "status": "open",
+      "close_time": "2026-01-15T21:00:00Z",
+      "expiration_time": "2026-01-15T21:00:00Z",
+      "market_type": "binary",
+      "liquidity": 125000,
+      "volume": 87500,
+      "yes_bid": 56,
+      "no_bid": 43,
+      "yes_ask": 58,
+      "no_ask": 42,
+      "open_time": "2026-01-01T00:00:00Z",
+      "expected_expiration_time": "2026-01-15T21:00:00Z"
+    }
+  ],
+  "next_cursor": null
+}
